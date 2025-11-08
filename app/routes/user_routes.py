@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from fastapi import Query
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.user_schema import UserOut, UserUpdate
-from app.services.jwt_service import get_current_user , decode_token, revoke_token
+from app.services.jwt_service import get_current_user, decode_token, revoke_token
 from app.constant import DELETED
 from fastapi import Request
-from app.models.token import Token
 from fastapi import Body
 from datetime import datetime, timezone
+from app.utils import hash_password
+
 
 router = APIRouter()
 
@@ -75,3 +75,21 @@ def update_own_account(
     db.refresh(user)
 
     return user
+
+@router.post("/reset-password")
+def reset_password(
+    password: str = Body(..., embed=True),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.user_id == current_user.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    hashed_password = hash_password(password)
+    user.password_hash = hashed_password
+
+    db.commit()
+    db.refresh(user)
+
+    return {"detail": "Password updated successfully"}
