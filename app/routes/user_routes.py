@@ -23,7 +23,7 @@ def get_user_data(current_user: User = Depends(get_current_user), db: Session = 
 
 
 
-@router.delete("/me", response_model=UserOut)
+@router.delete("/deleteme", response_model=UserOut)
 def delete_own_account(
     request: Request,
     current_user: User = Depends(get_current_user),
