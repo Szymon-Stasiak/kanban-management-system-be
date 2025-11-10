@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.project import Project
 from app.schemas.project_schema import ProjectCreate, ProjectOut, ProjectUpdate
-from app.services.jwt_service import get_current_user
 
 router = APIRouter()
 
@@ -15,7 +14,6 @@ router = APIRouter()
 @router.post("/add", response_model=ProjectOut)
 def create_project(
 	project: ProjectCreate,
-	current_user = Depends(get_current_user),
 	db: Session = Depends(get_db),
 ):
 	new_project = Project(
@@ -31,15 +29,13 @@ def create_project(
 
 
 @router.get("/getall", response_model=List[ProjectOut])
-def get_projects(db: Session = Depends(get_db)
-				  #,current_user = Depends(get_current_user)
-				  ):
+def get_projects(db: Session = Depends(get_db)):
 	projects = db.query(Project).all()
 	return projects
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_project(project_id: str, db: Session = Depends(get_db)):
 	project = db.query(Project).filter(Project.project_id == project_id).first()
 	if not project:
 		raise HTTPException(status_code=404, detail="Project not found")
@@ -50,9 +46,7 @@ def get_project(project_id: str, db: Session = Depends(get_db), current_user = D
 def update_project(
 	project_id: str,
 	project_update: ProjectUpdate,
-	db: Session = Depends(get_db),
-	current_user = Depends(get_current_user),
-):
+	db: Session = Depends(get_db)):
 	project = db.query(Project).filter(Project.project_id == project_id).first()
 	if not project:
 		raise HTTPException(status_code=404, detail="Project not found")
@@ -72,7 +66,7 @@ def update_project(
 
 
 @router.delete("/delete/{project_id}")
-def delete_project(project_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def delete_project(project_id: str, db: Session = Depends(get_db)):
 	project = db.query(Project).filter(Project.project_id == project_id).first()
 	if not project:
 		raise HTTPException(status_code=404, detail="Project not found")
