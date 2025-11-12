@@ -18,4 +18,4 @@ class ColumnModel(Base):
     board = relationship("Board", back_populates="columns")
 
     # Placeholder for tasks (will add later)
-    tasks = relationship("Task", back_populates="column", cascade="all, delete-orphan")
+    # tasks = relationship("Task", back_populates="column", cascade="all, delete-orphan")
