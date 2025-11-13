@@ -1,31 +1,33 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
 
 class ProjectCreate(BaseModel):
-    name: str
+    name: str = Field(..., max_length=150)
     description: Optional[str] = None
-    color: Optional[str] = None
-    archived: Optional[bool] = False
-
-
-class ProjectOut(BaseModel):
-    project_id: UUID
-    name: str
-    description: Optional[str] = None
-    color: Optional[str] = None
-    archived: bool
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+    color: Optional[str] = Field(None, max_length=50)
+    status: Optional[str] = Field("active", pattern="^(active|archived)$")
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=150)
+    description: Optional[str] = None
+    color: Optional[str] = Field(None, max_length=50)
+    status: Optional[str] = Field(None, pattern="^(active|archived)$")
+
+
+class ProjectOut(BaseModel):
+    public_project_id: UUID
+    owner_id: UUID
+    name: str
     description: Optional[str] = None
     color: Optional[str] = None
-    archived: Optional[bool] = None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    archived_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
