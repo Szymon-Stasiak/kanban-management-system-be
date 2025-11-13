@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.db.database import engine, Base
 from app.routes import user_routes, auth_routes
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes import project_routes
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,3 +25,4 @@ app.add_middleware(
 
 app.include_router(user_routes.router, prefix="/users", tags=["Users"])
 app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
+app.include_router(project_routes.router, prefix="/projects", tags=["Projects"])
