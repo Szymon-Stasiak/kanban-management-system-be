@@ -12,7 +12,7 @@ class Board(Base):
     name = Column(String, index=True)
     description = Column(String, nullable=True)
 
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.project_id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.public_project_id"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),

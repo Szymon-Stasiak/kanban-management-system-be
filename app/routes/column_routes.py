@@ -7,7 +7,7 @@ from app.models.board import Board
 from app.models.project import Project
 from app.schemas.column_schema import ColumnCreate, ColumnOut
 from typing import List
-from app.routes.auth_routes import get_current_user
+from app.services.jwt_service import get_current_user
 
 router = APIRouter()
 

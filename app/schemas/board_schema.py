@@ -4,6 +4,13 @@ from typing import Optional
 class BoardCreate(BaseModel):
     name: str
     description: str | None = None
-    project_id: int
+
+class BoardResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
 
 
