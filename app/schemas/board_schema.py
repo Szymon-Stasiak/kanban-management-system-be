@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from uuid import UUID
+from datetime import datetime
 
 class BoardCreate(BaseModel):
     name: str
@@ -19,6 +21,18 @@ class BoardResponse(BaseModel):
     color: Optional[str] = Field(None, max_length=50)
     
     class Config:
-        from_attributes = True
+        orm_mode = True
+        
+class BoardOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+    project_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
 
 

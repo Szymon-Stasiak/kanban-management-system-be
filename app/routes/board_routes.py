@@ -4,7 +4,7 @@ from uuid import UUID
 from app.db.database import get_db
 from app.models.board import Board
 from app.models.project import Project
-from app.schemas.board_schema import BoardCreate
+from app.schemas.board_schema import BoardCreate, BoardOut, BoardUpdate
 from app.services.jwt_service import get_current_user
 
 router = APIRouter()
@@ -54,6 +54,34 @@ def get_boards_for_project(
     
     boards = db.query(Board).filter(Board.project_id == project.public_project_id).all()
     return boards
+
+@router.put("/update/{boardId}", response_model=BoardOut)
+def update_board(
+    boardId: str,
+    board_update: BoardUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # Fetch the board, optionally check owner if needed
+    board = (
+        db.query(Board)
+        .filter(Board.id == boardId)
+        .first()
+    )
+    if not board:
+        raise HTTPException(status_code=404, detail="Board not found or access denied")
+
+    # Update fields if provided
+    if board_update.name is not None:
+        board.name = board_update.name
+    if board_update.description is not None:
+        board.description = board_update.description
+    if board_update.color is not None:
+        board.color = board_update.color
+
+    db.commit()
+    db.refresh(board)
+    return board
 
 @router.delete("/{board_id}/project/{public_project_id}")
 def delete_board(
