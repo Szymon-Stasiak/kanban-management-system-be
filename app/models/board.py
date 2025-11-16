@@ -11,6 +11,7 @@ class Board(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String, nullable=True)
+    color = Column(String(50))
 
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.public_project_id"), nullable=False)
 

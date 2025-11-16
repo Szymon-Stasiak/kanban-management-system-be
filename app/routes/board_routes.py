@@ -29,6 +29,7 @@ def create_board(
     new_board = Board(
         name=board.name,
         description=board.description,
+        color=board.color,
         project_id=project.public_project_id
     )
     db.add(new_board)
