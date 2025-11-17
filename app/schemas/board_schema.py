@@ -21,7 +21,7 @@ class BoardResponse(BaseModel):
     color: Optional[str] = Field(None, max_length=50)
     
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class BoardOut(BaseModel):
     id: int
@@ -33,6 +33,6 @@ class BoardOut(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 

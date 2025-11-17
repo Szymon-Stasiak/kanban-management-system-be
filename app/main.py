@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.db.database import engine, Base
-from app.routes import user_routes, auth_routes, column_routes, board_routes
+from app.routes import user_routes, auth_routes, column_routes, board_routes, task_routes
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import projects_routes
 
@@ -26,3 +26,4 @@ app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
 app.include_router(board_routes.router, prefix="/boards", tags=["Boards"])
 app.include_router(column_routes.router, prefix="/columns", tags=["Columns"])
 app.include_router(projects_routes.router, prefix="/projects", tags=["Projects"])
+app.include_router(task_routes.router, prefix="/tasks", tags=["Tasks"])

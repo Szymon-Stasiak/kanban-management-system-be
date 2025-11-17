@@ -11,10 +11,8 @@ class ColumnModel(Base):
     position = Column(Integer, nullable=False, default=0)  
 
     # Link to Board
-    board_id = Column(Integer, ForeignKey("boards.id"), nullable=False)
+    board_id = Column(Integer, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
 
     # Relationship with Board
     board = relationship("Board", back_populates="columns")
-
-    # Placeholder for tasks (will add later)
-    # tasks = relationship("Task", back_populates="column", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="column", cascade="all, delete-orphan")
