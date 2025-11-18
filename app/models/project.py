@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Text, TIMESTAMP, ForeignKey, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db.database import Base
 import uuid
 
@@ -37,3 +38,5 @@ class Project(Base):
             name="projects_status_check"
         ),
     )
+
+    boards = relationship("Board", back_populates="project", cascade="all, delete-orphan")
