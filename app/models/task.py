@@ -9,6 +9,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(150), nullable=False, index=True)
     description = Column(Text, nullable=True) 
+    position = Column(Integer, nullable=False, default=0)  
     
     column_id = Column(Integer, ForeignKey("columns.id", ondelete="CASCADE"), nullable=False)
 

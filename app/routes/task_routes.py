@@ -33,6 +33,7 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db), current_user=De
     new_task = Task(
         title=task.title,
         description=task.description,
+        position=task.position,
         column_id=task.column_id
     )
 
