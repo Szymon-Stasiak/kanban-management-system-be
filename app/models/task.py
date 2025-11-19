@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, func
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, func
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.db.database import Base
@@ -9,6 +9,8 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(150), nullable=False, index=True)
     description = Column(Text, nullable=True) 
+    completed = Column(Boolean, default=False, nullable=False)
+    priority = Column(String(20), default="medium", nullable=False)
     
     column_id = Column(Integer, ForeignKey("columns.id", ondelete="CASCADE"), nullable=False)
 
