@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.db.database import engine, Base
-from app.routes import user_routes, auth_routes, column_routes, board_routes, task_routes
+from app.routes import user_routes, auth_routes, column_routes, board_routes, task_routes ,picture_routes
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import projects_routes
 
@@ -22,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(user_routes.router, prefix="/users", tags=["Users"])
+app.include_router(picture_routes.router, prefix="/profile-picture", tags=["Pictures"])
 app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
 app.include_router(board_routes.router, prefix="/boards", tags=["Boards"])
 app.include_router(column_routes.router, prefix="/columns", tags=["Columns"])
