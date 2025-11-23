@@ -11,7 +11,9 @@ class Task(Base):
     description = Column(Text, nullable=True) 
     completed = Column(Boolean, default=False, nullable=False)
     priority = Column(String(20), default="medium", nullable=False)
-    
+    # Adding due date
+    # due_date = Column(DateTime, default=datetime.now(timezone=True), nullable=False)
+    due_date = Column(DateTime(timezone=True), nullable=False)
     column_id = Column(Integer, ForeignKey("columns.id", ondelete="CASCADE"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

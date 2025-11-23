@@ -33,7 +33,12 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db), current_user=De
     new_task = Task(
         title=task.title,
         description=task.description,
-        column_id=task.column_id
+        column_id=task.column_id,
+        priority=task.priority,
+        due_date=task.due_date,
+
+        # Add this later when completed is integrated
+        # completed=task.completed,
     )
 
     db.add(new_task)
