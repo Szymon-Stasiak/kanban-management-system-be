@@ -1,29 +1,29 @@
-version: "3.9"
+  version: "3.9"
 
-services:
-  app:
-    build: .
-    ports:
-      - "8000:8000"
-    depends_on:
-      - minio
-    environment:
-      MINIO_ENDPOINT: "minio:9000"
-      MINIO_ACCESS_KEY: "minioadmin"
-      MINIO_SECRET_KEY: "minioadmin"
+  services:
+    app:
+      build: .
+      ports:
+        - "8000:8000"
+      depends_on:
+        - minio
+      environment:
+        MINIO_ENDPOINT: "minio:9000"
+        MINIO_ACCESS_KEY: "minioadmin"
+        MINIO_SECRET_KEY: "minioadmin"
 
-  minio:
-    image: minio/minio
-    container_name: minioCloud
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
+    minio:
+      image: minio/minio
+      container_name: minioCloud
+      ports:
+        - "9000:9000"
+        - "9001:9001"
+      environment:
+        MINIO_ROOT_USER: minioadmin
+        MINIO_ROOT_PASSWORD: minioadmin
+      command: server /data --console-address ":9001"
+      volumes:
+        - minio_data:/data
 
-volumes:
-  minio_data:
+  volumes:
+    minio_data:
