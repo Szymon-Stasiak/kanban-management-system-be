@@ -11,6 +11,7 @@ client = Minio(
 )
 
 BUCKET = "mybucket"
+endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
 
 if not client.bucket_exists(BUCKET):
     client.make_bucket(BUCKET)
@@ -35,7 +36,9 @@ async def upload_file_to_minio(file, filename: str):
         BytesIO(data),
         length=len(data)
     )
-    endpoint = os.getenv("MINIO_ENDPOINT", "minioCloud:9000")
+    #todo later change for docker build
+    # endpoint = os.getenv("MINIO_ENDPOINT", "minioCloud:9000")
+    endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
     return f"http://{endpoint}/{BUCKET}/{filename}"
 
 
