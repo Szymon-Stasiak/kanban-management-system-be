@@ -5,7 +5,7 @@ from app.models.task import Task
 from app.models.column import ColumnModel
 from app.models.board import Board
 from app.models.project import Project
-from app.schemas.task_schema import TaskCreate, TaskOut, TaskUpdate
+from app.schemas.task_schema import TaskCreate, TaskOut
 from typing import List
 from app.services.jwt_service import get_current_user
 
@@ -34,7 +34,12 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db), current_user=De
         title=task.title,
         description=task.description,
         position=task.position,
-        column_id=task.column_id
+        column_id=task.column_id,
+        priority=task.priority,
+        due_date=task.due_date,
+
+        # Add this later when completed is integrated
+        # completed=task.completed,
     )
 
     db.add(new_task)
@@ -60,61 +65,3 @@ def get_tasks_for_column(column_id: int, db: Session = Depends(get_db), current_
     )
 
     return tasks
-
-
-# Update a task
-@router.put("/{task_id}", response_model=TaskOut)
-def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-
-    # Ensure task exists and belongs to the current user via project ownership
-    existing_task = (
-        db.query(Task)
-        .join(ColumnModel)
-        .join(Board)
-        .join(Project)
-        .filter(
-            Task.id == task_id,
-            Project.owner_id == current_user.user_id,
-        )
-        .first()
-    )
-
-    if not existing_task:
-        raise HTTPException(status_code=404, detail="Task not found or access denied")
-
-    # Apply updates only for provided fields
-    if task.title is not None:
-        existing_task.title = task.title
-    if task.description is not None:
-        existing_task.description = task.description
-    if task.position is not None:
-        existing_task.position = task.position
-    if task.column_id is not None:
-        existing_task.column_id = task.column_id
-
-    db.commit()
-    db.refresh(existing_task)
-    return existing_task
-
-
-# Delete a task
-@router.delete("/{task_id}")
-def delete_task(task_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    existing_task = (
-        db.query(Task)
-        .join(ColumnModel)
-        .join(Board)
-        .join(Project)
-        .filter(
-            Task.id == task_id,
-            Project.owner_id == current_user.user_id,
-        )
-        .first()
-    )
-
-    if not existing_task:
-        raise HTTPException(status_code=404, detail="Task not found or access denied")
-
-    db.delete(existing_task)
-    db.commit()
-    return {"detail": "Task deleted"}

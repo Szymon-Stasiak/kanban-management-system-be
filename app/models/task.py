@@ -11,6 +11,10 @@ class Task(Base):
     description = Column(Text, nullable=True) 
     position = Column(Integer, nullable=False, default=0)  
     
+    completed = Column(Boolean, default=False, nullable=False)
+    priority = Column(String(20), default="medium", nullable=False)
+
+    due_date = Column(DateTime(timezone=True), nullable=False)
     column_id = Column(Integer, ForeignKey("columns.id", ondelete="CASCADE"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
