@@ -98,3 +98,60 @@ def delete_column(column_id: int, db: Session = Depends(get_db), current_user = 
     
     db.commit()
     return {"message": "Column deleted successfully"}
+
+
+@router.put("/{column_id}/reorder", response_model=ColumnOut)
+def reorder_column(
+    column_id: int, 
+    reorder_data: ColumnReorder, 
+    db: Session = Depends(get_db), 
+    current_user = Depends(get_current_user)
+):
+    # Verify ownership and get column
+    db_column = (
+        db.query(ColumnModel)
+        .join(Board)
+        .join(Project)
+        .filter(ColumnModel.id == column_id, Project.owner_id == current_user.user_id)
+        .first()
+    )
+    if not db_column:
+        raise HTTPException(status_code=404, detail="Column not found or access denied")
+
+    old_position = db_column.position
+    new_position = reorder_data.new_position
+    board_id = db_column.board_id
+
+    # Validate new position
+    max_position = db.query(func.max(ColumnModel.position))\
+        .filter(ColumnModel.board_id == board_id)\
+        .scalar() or 0
+    
+    if new_position < 1 or new_position > max_position:
+        raise HTTPException(status_code=400, detail="Invalid position")
+
+    if old_position == new_position:
+        return db_column
+
+    # Reorder logic
+    if old_position < new_position:
+        # Moving right: shift columns between old and new position to the left
+        db.query(ColumnModel)\
+            .filter(ColumnModel.board_id == board_id)\
+            .filter(ColumnModel.position > old_position)\
+            .filter(ColumnModel.position <= new_position)\
+            .update({ColumnModel.position: ColumnModel.position - 1}, synchronize_session=False)
+    else:
+        # Moving left: shift columns between new and old position to the right
+        db.query(ColumnModel)\
+            .filter(ColumnModel.board_id == board_id)\
+            .filter(ColumnModel.position >= new_position)\
+            .filter(ColumnModel.position < old_position)\
+            .update({ColumnModel.position: ColumnModel.position + 1}, synchronize_session=False)
+
+    # Update the dragged column position
+    db_column.position = new_position
+    db.commit()
+    db.refresh(db_column)
+    
+    return db_column
