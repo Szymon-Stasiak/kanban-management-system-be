@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.task import Task
@@ -78,3 +78,28 @@ def get_tasks_for_column(column_id: int, db: Session = Depends(get_db), current_
     )
 
     return tasks
+
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(task_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+
+    # Ensure the task belongs to a column -> board -> project owned by current user
+    task = (
+        db.query(Task)
+        .join(ColumnModel)
+        .join(Board)
+        .join(Project)
+        .filter(
+            Task.id == task_id,
+            Project.owner_id == current_user.user_id,
+        )
+        .first()
+    )
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found or access denied")
+
+    db.delete(task)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
