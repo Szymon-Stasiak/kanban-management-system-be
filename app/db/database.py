@@ -10,8 +10,10 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", password)
 # DB_HOST = "postgres"
 # DB_PORT = os.getenv("DB_PORT", "5432")
 # else:
-DB_HOST = "localhost"
-DB_PORT = os.getenv("DB_PORT", "15432")
+# Prefer environment variables so the app works both locally and in Docker.
+# When running with Docker Compose the DB service name will be `postgres`.
+DB_HOST = os.getenv("DB_HOST", "postgres")
+DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME",  db_name)
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
