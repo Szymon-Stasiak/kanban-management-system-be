@@ -33,7 +33,11 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db), current_user=De
     new_task = Task(
         title=task.title,
         description=task.description,
-        column_id=task.column_id
+        position=task.position,
+        column_id=task.column_id,
+        priority=task.priority,
+        due_date=task.due_date,
+        completed=task.completed,
     )
 
     db.add(new_task)
@@ -41,6 +45,21 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db), current_user=De
     db.refresh(new_task)
 
     return new_task
+
+
+@router.get("/getall", response_model=List[TaskOut])
+def get_all_tasks(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+
+    tasks = (
+        db.query(Task)
+        .join(ColumnModel)
+        .join(Board)
+        .join(Project)
+        .filter(Project.owner_id == current_user.user_id)
+        .all()
+    )
+
+    return tasks
 
 
 @router.get("/{column_id}", response_model=List[TaskOut])
