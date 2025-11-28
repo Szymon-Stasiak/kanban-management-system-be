@@ -11,3 +11,6 @@ class ColumnOut(ColumnCreate):
 
     class Config:
         from_attributes = True
+
+class ColumnReorder(BaseModel):
+    new_position: int

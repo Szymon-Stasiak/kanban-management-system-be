@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.column import ColumnModel
 from app.models.board import Board
 from app.models.project import Project
-from app.schemas.column_schema import ColumnCreate, ColumnOut
+from app.schemas.column_schema import ColumnCreate, ColumnOut, ColumnReorder
 from typing import List
 from app.services.jwt_service import get_current_user
 
@@ -22,9 +23,14 @@ def create_column(column: ColumnCreate, db: Session = Depends(get_db), current_u
     if not board:
         raise HTTPException(status_code=404, detail="Board not found or access denied")
 
+    # Calculate the next position automatically
+    max_position = db.query(func.max(ColumnModel.position))\
+        .filter(ColumnModel.board_id == column.board_id)\
+        .scalar() or 0
+
     new_column = ColumnModel(
         name=column.name,
-        position=column.position,
+        position=max_position + 1, 
         board_id=column.board_id
     )
     db.add(new_column)
@@ -40,12 +46,12 @@ def get_columns_for_board(board_id: int, db: Session = Depends(get_db), current_
         .join(Board)
         .join(Project)
         .filter(ColumnModel.board_id == board_id, Project.owner_id == current_user.user_id)
+        .order_by(ColumnModel.position)  
         .all()
     )
     return columns
 
 
-# Rename (update) a column
 @router.put("/{column_id}", response_model=ColumnOut)
 def update_column(column_id: int, column: ColumnCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_column = (
@@ -58,9 +64,9 @@ def update_column(column_id: int, column: ColumnCreate, db: Session = Depends(ge
     if not db_column:
         raise HTTPException(status_code=404, detail="Column not found or access denied")
 
-
+    
     db_column.name = column.name
-    db_column.position = column.position
+ 
     db.commit()
     db.refresh(db_column)
     return db_column
@@ -79,6 +85,16 @@ def delete_column(column_id: int, db: Session = Depends(get_db), current_user = 
     if not db_column:
         raise HTTPException(status_code=404, detail="Column not found or access denied")
 
+    deleted_position = db_column.position
+    board_id = db_column.board_id
+
     db.delete(db_column)
+    
+    # Shift columns after the deleted one
+    db.query(ColumnModel)\
+        .filter(ColumnModel.board_id == board_id)\
+        .filter(ColumnModel.position > deleted_position)\
+        .update({ColumnModel.position: ColumnModel.position - 1}, synchronize_session=False)
+    
     db.commit()
     return {"message": "Column deleted successfully"}
