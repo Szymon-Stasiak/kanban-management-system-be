@@ -99,7 +99,6 @@ def delete_column(column_id: int, db: Session = Depends(get_db), current_user = 
     db.commit()
     return {"message": "Column deleted successfully"}
 
-
 @router.put("/{column_id}/reorder", response_model=ColumnOut)
 def reorder_column(
     column_id: int, 
@@ -107,7 +106,7 @@ def reorder_column(
     db: Session = Depends(get_db), 
     current_user = Depends(get_current_user)
 ):
-    # Verify ownership and get column
+    # Verify the column exists and user has access
     db_column = (
         db.query(ColumnModel)
         .join(Board)
@@ -122,36 +121,44 @@ def reorder_column(
     new_position = reorder_data.new_position
     board_id = db_column.board_id
 
-    # Validate new position
+    # Validate new_position
     max_position = db.query(func.max(ColumnModel.position))\
         .filter(ColumnModel.board_id == board_id)\
         .scalar() or 0
     
     if new_position < 1 or new_position > max_position:
-        raise HTTPException(status_code=400, detail="Invalid position")
+        raise HTTPException(status_code=400, detail=f"Invalid position. Must be between 1 and {max_position}")
 
+    # If position hasn't changed, return early
     if old_position == new_position:
         return db_column
 
-    # Reorder logic
-    if old_position < new_position:
-        # Moving right: shift columns between old and new position to the left
-        db.query(ColumnModel)\
-            .filter(ColumnModel.board_id == board_id)\
-            .filter(ColumnModel.position > old_position)\
-            .filter(ColumnModel.position <= new_position)\
-            .update({ColumnModel.position: ColumnModel.position - 1}, synchronize_session=False)
-    else:
-        # Moving left: shift columns between new and old position to the right
+    # Step 1: Move the column to a temporary negative position to avoid conflicts
+    db_column.position = -1
+    db.flush()  # Apply this change immediately
+
+    # Step 2: Reorder other columns
+    if new_position < old_position:
+        # Moving left: shift columns between new_position and old_position to the right
         db.query(ColumnModel)\
             .filter(ColumnModel.board_id == board_id)\
             .filter(ColumnModel.position >= new_position)\
             .filter(ColumnModel.position < old_position)\
             .update({ColumnModel.position: ColumnModel.position + 1}, synchronize_session=False)
+    else:
+        # Moving right: shift columns between old_position and new_position to the left
+        db.query(ColumnModel)\
+            .filter(ColumnModel.board_id == board_id)\
+            .filter(ColumnModel.position > old_position)\
+            .filter(ColumnModel.position <= new_position)\
+            .update({ColumnModel.position: ColumnModel.position - 1}, synchronize_session=False)
 
-    # Update the dragged column position
+    db.flush()  # Apply the shifts
+
+    # Step 3: Move the column to its final position
     db_column.position = new_position
+    
     db.commit()
     db.refresh(db_column)
-    
     return db_column
+
