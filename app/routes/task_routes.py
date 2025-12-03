@@ -81,7 +81,7 @@ def get_tasks_for_column(column_id: int, db: Session = Depends(get_db), current_
 
 
 # Update a task
-@router.put("/{task_id}", response_model=TaskOut)
+@router.put("/update/{task_id}", response_model=TaskOut)
 def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
 
     existing = (
