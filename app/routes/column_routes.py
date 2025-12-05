@@ -84,18 +84,23 @@ def delete_column(column_id: int, db: Session = Depends(get_db), current_user = 
     )
     if not db_column:
         raise HTTPException(status_code=404, detail="Column not found or access denied")
-
-    deleted_position = db_column.position
     board_id = db_column.board_id
 
+    # Delete the column
     db.delete(db_column)
-    
-    # Shift columns after the deleted one
-    db.query(ColumnModel)\
-        .filter(ColumnModel.board_id == board_id)\
-        .filter(ColumnModel.position > deleted_position)\
-        .update({ColumnModel.position: ColumnModel.position - 1}, synchronize_session=False)
-    
+
+    # Recompute positions for remaining columns in this board to avoid unique-constraint conflicts
+    remaining = (
+        db.query(ColumnModel)
+        .filter(ColumnModel.board_id == board_id)
+        .order_by(ColumnModel.position)
+        .all()
+    )
+
+    # Reassign positions sequentially starting from 1
+    for idx, col in enumerate(remaining, start=1):
+        col.position = idx
+
     db.commit()
     return {"message": "Column deleted successfully"}
 
