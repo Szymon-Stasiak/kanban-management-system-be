@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db.database import get_db
 from app.models.task import Task
 from app.models.column import ColumnModel
@@ -74,6 +75,7 @@ def get_tasks_for_column(column_id: int, db: Session = Depends(get_db), current_
             Task.column_id == column_id,
             Project.owner_id == current_user.user_id
         )
+        .order_by(Task.position)
         .all()
     )
 
@@ -103,10 +105,54 @@ def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), c
         existing.title = task.title
     if task.description is not None:
         existing.description = task.description
+    # Handle reordering when position (and optionally column_id) provided
     if task.position is not None:
-        existing.position = task.position
-    if task.column_id is not None:
-        existing.column_id = task.column_id
+        new_position = task.position
+        target_column_id = task.column_id if task.column_id is not None else existing.column_id
+
+        # Determine max position in target column
+        max_position = db.query(func.max(Task.position)).filter(Task.column_id == target_column_id).scalar() or 0
+
+        if new_position < 1:
+            raise HTTPException(status_code=400, detail="Invalid position")
+
+        # If moving to a different column, clamp new_position to max+1
+        if target_column_id != existing.column_id:
+            # Removing from old column: shift left positions after the old position
+            db.query(Task).filter(Task.column_id == existing.column_id).filter(Task.position > (existing.position or 0)).update({Task.position: Task.position - 1}, synchronize_session=False)
+
+            # Insert into new column: clamp new_position
+            if new_position > max_position + 1:
+                new_position = max_position + 1
+
+            # Shift tasks at or after new_position in new column to the right
+            db.query(Task).filter(Task.column_id == target_column_id).filter(Task.position >= new_position).update({Task.position: Task.position + 1}, synchronize_session=False)
+
+            existing.position = new_position
+            existing.column_id = target_column_id
+        else:
+            # Moving within same column
+            old_position = existing.position or 0
+            if new_position == old_position:
+                pass
+            else:
+                if new_position > old_position:
+                    # shift left tasks between old_position+1 .. new_position
+                    db.query(Task).filter(Task.column_id == existing.column_id).filter(Task.position > old_position).filter(Task.position <= new_position).update({Task.position: Task.position - 1}, synchronize_session=False)
+                else:
+                    # shift right tasks between new_position .. old_position-1
+                    db.query(Task).filter(Task.column_id == existing.column_id).filter(Task.position >= new_position).filter(Task.position < old_position).update({Task.position: Task.position + 1}, synchronize_session=False)
+
+                existing.position = new_position
+
+    if task.column_id is not None and task.position is None:
+        # If only column_id changed without position, append to end of that column
+        target_column_id = task.column_id
+        max_position = db.query(func.max(Task.position)).filter(Task.column_id == target_column_id).scalar() or 0
+        # Remove from old column positions
+        db.query(Task).filter(Task.column_id == existing.column_id).filter(Task.position > (existing.position or 0)).update({Task.position: Task.position - 1}, synchronize_session=False)
+        existing.column_id = target_column_id
+        existing.position = max_position + 1
     if task.priority is not None:
         existing.priority = task.priority
     if task.completed is not None:
