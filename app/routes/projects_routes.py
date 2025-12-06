@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from io import BytesIO
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -13,6 +13,7 @@ from app.schemas.project_schema import ProjectCreate, ProjectOut, ProjectUpdate
 from app.services.jwt_service import get_current_user
 
 from app.services.pdf_service import build_project_pdf
+from app.services.csv_service import build_project_csv
 
 router = APIRouter()
 
@@ -115,6 +116,7 @@ def delete_project(
 @router.get("/pdf/{public_project_id}")
 def generate_project_pdf(
     public_project_id: str,
+    board_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -131,14 +133,13 @@ def generate_project_pdf(
         raise HTTPException(status_code=404, detail="Project not found or access denied")
 
     # Pobierz wszystkie boardy projektu wraz z kolumnami i taskami
-    boards = (
-        db.query(Board)
-        .filter(Board.project_id == project.public_project_id)
-        .options(
-            joinedload(Board.columns).joinedload(ColumnModel.tasks)
-        )
-        .all()
-    )
+    # If board_id provided, return only that board (if it belongs to the project)
+    query = db.query(Board).options(joinedload(Board.columns).joinedload(ColumnModel.tasks))
+    if board_id is not None:
+        query = query.filter(Board.id == board_id, Board.project_id == project.public_project_id)
+    else:
+        query = query.filter(Board.project_id == project.public_project_id)
+    boards = query.all()
 
     buffer = build_project_pdf(project, boards)
 
@@ -147,6 +148,44 @@ def generate_project_pdf(
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+@router.get("/csv/{public_project_id}")
+def generate_project_csv(
+    public_project_id: str,
+    board_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Generate CSV for the project containing all columns and tasks.
+    """
+    project = (
+        db.query(Project)
+        .filter(Project.public_project_id == public_project_id, Project.owner_id == current_user.user_id)
+        .first()
+    )
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found or access denied")
+
+    query = db.query(Board).options(joinedload(Board.columns).joinedload(ColumnModel.tasks))
+    if board_id is not None:
+        query = query.filter(Board.id == board_id, Board.project_id == project.public_project_id)
+    else:
+        query = query.filter(Board.project_id == project.public_project_id)
+    boards = query.all()
+
+    buffer = build_project_csv(project, boards)
+
+    filename = f"project_{project.name.replace(' ', '_')}.csv"
+
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename={filename}"
         }
