@@ -1,11 +1,18 @@
 from typing import List
+from io import BytesIO
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from app.db.database import get_db
 from app.models.project import Project
+from app.models.board import Board
+from app.models.column import ColumnModel
+from app.models.task import Task
 from app.schemas.project_schema import ProjectCreate, ProjectOut, ProjectUpdate
 from app.services.jwt_service import get_current_user
+
+from app.services.pdf_service import build_project_pdf
 
 router = APIRouter()
 
@@ -103,3 +110,44 @@ def delete_project(
     db.delete(project)
     db.commit()
     return {"detail": f"Project '{project.name}' deleted successfully"}
+
+
+@router.get("/pdf/{public_project_id}")
+def generate_project_pdf(
+    public_project_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Generate a PDF for the project containing all columns and tasks.
+    """
+    # Pobierz projekt z boardami, kolumnami i taskami
+    project = (
+        db.query(Project)
+        .filter(Project.public_project_id == public_project_id, Project.owner_id == current_user.user_id)
+        .first()
+    )
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found or access denied")
+
+    # Pobierz wszystkie boardy projektu wraz z kolumnami i taskami
+    boards = (
+        db.query(Board)
+        .filter(Board.project_id == project.public_project_id)
+        .options(
+            joinedload(Board.columns).joinedload(ColumnModel.tasks)
+        )
+        .all()
+    )
+
+    buffer = build_project_pdf(project, boards)
+
+    filename = f"project_{project.name.replace(' ', '_')}.pdf"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
